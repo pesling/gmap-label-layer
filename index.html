@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 	
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<title>apps.cnt.org | Maps</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Language" content="en-us" />
+<link href="http://code.google.com/apis/maps/documentation/javascript/examples/standard.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="http://maps.google.com/maps/api/js"></script>  
+
+<link rel="stylesheet" href="https://www.w3schools.com/lib/w3.css" />
+
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+
+
+<script>
+
+var map;
+var marker;
+var default_position = new google.maps.LatLng(41.8369056203713,-87.684757976876);
+var default_zoom = 12;
+
+ 
+function initialize() {
+/* styles for label layer hack 
+Set map base layer to these styles temporarily in order to get styles from URL map tile request
+*/
+var labelLayerStyles = eval($("#map-styles").val());
+
+/* Styles for base layer should exclude all streets and labels */	
+var baseLayerStyles = 
+[
+  {"stylers": [{ "visibility": "off" },]},  //start with everything off
+  {
+    "featureType": "water",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "water",
+    "elementType": "labels.text",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+}];
+
+	
+	var mapOptions = {
+		zoom: default_zoom,
+		center: default_position,
+		disableDefaultUI: false,
+		
+		mapTypeControl: true,
+		mapTypeControlOptions: {
+			style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+			position: google.maps.ControlPosition.RIGHT_TOP
+		},
+		panControl: true,
+		panControlOptions: {
+			position: google.maps.ControlPosition.LEFT_TOP
+		},
+		zoomControl: true,
+		zoomControlOptions: {
+			position: google.maps.ControlPosition.LEFT_TOP
+		},
+		streetViewControl: true,
+		streetViewControlOptions: {
+			position: google.maps.ControlPosition.LEFT_TOP
+		},
+		
+
+		styles: labelLayerStyles//,
+		//mapTypeId: google.maps.MapTypeId.ROADMAP
+	};
+
+	map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+	
+	if ($("#show-bike-layer").is(":checked")){
+		var bikeLayer = new google.maps.BicyclingLayer();
+		bikeLayer.setMap(map);
+	}
+
+	if ($("#show-transit-layer").is(":checked")){
+		var transitLayer = new google.maps.TransitLayer();
+		transitLayer.setMap(map);
+	}
+	
+	google.maps.event.addListener(map, 'zoom_changed', function() {
+		getURLs();
+	});	
+
+	google.maps.event.addListener(map, 'idle', function() {
+		getURLs();
+	});	
+
+	
+}
+
+$(document).ready(function(){
+	initialize();
+	$(".layer").click(function() {
+		initialize();
+	});
+	$("#map-styles").change(function() {
+		initialize();
+	});
+	$("#bgcolor").change(function() {
+		$("#map_canvas").css("background-color", $("#bgcolor").val());;
+	});
+});
+
+function getURLs(){
+var urls = Array.prototype.map.call(
+    document.querySelectorAll("img"), // Elements which request external resources: "link, img, script, iframe"
+    function(e) { // Loop over and return their href/src
+        if (e.src.indexOf("!1i") >= 0 && e.src.indexOf("!2i") >= 0 && e.src.indexOf("!3i") >= 0){
+			var zoom = e.src.substring(e.src.indexOf("!1i")+3, e.src.indexOf("!2i"));
+			var coordX = e.src.substring(e.src.indexOf("!2i")+3, e.src.indexOf("!3i"));
+			var coordY = e.src.substring(e.src.indexOf("!3i")+3, e.src.indexOf("!4i"));
+			$("#zoom").html(zoom);
+			$("#coord-x").html(coordX);
+			$("#coord-y").html(coordY);
+			$("#labels-url").html(e.src);
+			
+			var implementationCode = e.src.replace("!1i"+zoom, "!1i\" + zoom + \"").replace("!2i"+coordX, "!2i\" + coord.x + \"").replace("!3i"+coordY, "!3i\" + coord.y + \"");
+			
+			var implementation = "var labelTiles = {";
+			implementation += "\n\t";
+			implementation += 		"getTileUrl: function(coord, zoom) {";
+			implementation += "\n\t\t";
+			implementation += 			"return \""+implementationCode+"\";";
+			implementation += "\n\t";
+			implementation += 			"},";
+			implementation += "\n\t";
+			implementation += 			"tileSize: new google.maps.Size(256, 256),isPng: true";
+			implementation += "};";
+			implementation += "\n";
+			implementation += "var googleLabelLayer = new google.maps.ImageMapType(labelTiles);";
+			
+			$("#implementation-code").html(implementation);
+			
+			
+		}
+    }
+);
+}
+</script>  
+
+<style>
+pre {
+	width: 80%; 
+	background-color: #ddd; 
+	font-size: 12px;
+}
+
+#implementation-code {
+	background-color: yellow; 
+}
+
+</style>
+
+</head> 
+<body style="margin:20px;"> 
+<h1>Create a Google Map with a Labels and Streets Overlay</h1>
+<p>This is just a little utility to get at the Google Map Tile layer requests in order to create a multi-layered Google map without having to obscure the Google streets and labels (for <a href="example.html" target="_blank">example</a>).</p>
+
+<div class="w3-col s12 m8 l6">
+<p>Design your layer by setting the <a href="https://developers.google.com/maps/documentation/javascript/styling" target="_blank">styles</a>.  The styles below create a clean and simple labels and streets layer.</p>
+<input type="radio" id="show-transit-layer" class="layer" name="layer" /> Transit <input type="radio" id="show-bike-layer" class="layer" name="layer" /> Bike <input type="radio" id="show-no-layer" class="layer" name="layer" checked="checked" /> None 
+<br /><br />
+<textarea id="map-styles" style="width:90%; height:300px;">
+
+[
+  {
+    "featureType": "water",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+  },{
+    "featureType": "water",
+    "elementType": "labels.text",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "landscape",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+  },{
+    "featureType": "poi",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+  },{
+    "featureType": "transit.station",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+  },{
+    "featureType": "administrative",
+    "stylers": [
+      { "visibility": "off" }
+    ]
+  },{
+    "featureType": "administrative.country",
+    "elementType": "labels",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "administrative.province",
+    "elementType": "labels",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "administrative.locality",
+    "elementType": "labels",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "administrative.neighborhood",
+    "stylers": [
+      { "visibility": "on" },
+      { "color": "#808080" },
+      { "weight": 0.1 },
+      { "saturation": 1 },
+      { "gamma": 1 },
+      { "lightness": -25 }
+    ]
+  },{
+    "featureType": "road",
+    "stylers": [
+      { "visibility": "on" }
+    ]
+  },{
+    "featureType": "road.highway",
+    "stylers": [
+      { "visibility": "simplified" },
+      { "weight": 1 },
+      { "saturation": -50 }
+    ]
+  },{
+    "featureType": "road.arterial",
+    "stylers": [
+      { "visibility": "simplified" }
+    ]
+  }
+]
+</textarea>
+<br /><br />
+<input type="button" id="update" value="Update" />
+</div>
+<div class="w3-col s12 m4 l6">
+<div id="mapbox" style="height:420px;">
+<div id="map_canvas" style="width:100%; height:400px; background-color: #bbb;"></div>
+</div>
+</div>
+
+<div class="w3-col s12">
+<hr />
+<h3>Streets and Labels Layer URL:</h3>
+<div id="labels-url"></div>
+<p>Zoom: <span id="zoom"></span> | X: <span id="coord-x"></span> | Y: <span id="coord-y"></span></p>
+</div>
+<div class="w3-col s12">
+<h3>Implementation:</h3>
+<pre id="implementation-pre">
+var map;
+var default_position = new google.maps.LatLng(41.881003,-87.6342777);
+var default_zoom = 12;
+
+//my tile layer
+var myTiles = {
+	getTileUrl: function(coord, zoom) {
+		//example OSM layer without labels
+		return "http://b.tile.stamen.com/watercolor/" + zoom + "/" + coord.x + "/" + coord.y + ".jpg";
+		
+		//example relief layer without labels (only available at zooms < 12
+		//return "https://maps-for-free.com/layer/relief/z" + zoom + "/row" + coord.y + "/" + zoom + "_" + coord.x + "-" + coord.y + ".jpg";
+		
+		//any 256x256 image will work
+		//return "https://2.bp.blogspot.com/-EMxv2y0VND0/V31zB1ujaCI/AAAAAAAAG_Y/NcSp76GGbzczPTihK-1XU5CWxHfKK4tSgCLcB/s220/seamless-vector-with-faded-diagonal-stripes.jpg";
+	},
+	tileSize: new google.maps.Size(256, 256),
+	isPng: true
+};
+var myTileLayer = new google.maps.ImageMapType(myTiles);
+</pre>
+<pre id="implementation-code">
+
+/* Zoom in or out on the map for code */
+
+</pre>
+<pre id="implementation-post">
+
+//initialize the map
+function initialize() {
+
+	//styles for the base layer (nothing but water)
+	var baseLayerStyles = 
+	[
+	  {"stylers": [{ "visibility": "off" },]},  //start with everything off
+	  {
+		"featureType": "water",
+		"stylers": [
+		  { "visibility": "on" }
+		]
+	  },{
+		"featureType": "water",
+		"elementType": "labels.text",
+		"stylers": [
+		  { "visibility": "off" }
+		]
+	}];
+
+	var mapOptions = {
+		zoom: default_zoom,
+		center: default_position,
+		disableDefaultUI: false,
+		styles: baseLayerStyles,
+		mapTypeId: google.maps.MapTypeId.ROADMAP
+	};
+
+	map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+
+	//stop clusters and points below the labels 
+	map.overlayMapTypes.setAt(0, myTileLayer);
+	map.overlayMapTypes.setAt(1, googleLabelLayer);
+}
+</pre>
+
+
+</body> 
+</html> 
